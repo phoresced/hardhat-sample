@@ -49,7 +49,7 @@ contract Web3RSVP {
           maxCapacity,
           confirmedRSVPs,
           claimedRSVPs,
-          false
+          false // sets the `paidOut` boolean defined in the struct.
       );
   }
 
@@ -76,6 +76,60 @@ contract Web3RSVP {
 
       myEvent.confirmedRSVPs.push(payable(msg.sender));
 
+  }
+
+  function confirmAttendee(bytes32 eventId, address attendee) public {
+    // look up event from our struct using the eventId
+    CreateEvent storage myEvent = idToEvent[eventId];
+
+    // require that msg.sender is the owner of the event
+    require(msg.sender == myEvent.eventOwner, "NOT AUTHORIZED");
+
+    // check the attendee RSVP'd
+    address rsvpConfirm;
+
+    for (uint8 i = 0; i < myEvent.confirmedRSVPs.length; i++) {
+        if(myEvent.confirmedRSVPs[i] == attendee){
+            rsvpConfirm = myEvent.confirmedRSVPs[i];
+        }
+    }
+
+    require(rsvpConfirm == attendee, "NO RSVP TO CONFIRM");
+
+
+    // require that attendee is NOT already in the claimedRSVPs list i.e. make sure they haven't already checked in
+    for (uint8 i = 0; i < myEvent.claimedRSVPs.length; i++) {
+        require(myEvent.claimedRSVPs[i] != attendee, "ALREADY CLAIMED");
+    }
+
+    // require that deposits are not already claimed by the event owner
+    require(myEvent.paidOut == false, "ALREADY PAID OUT");
+
+    // add the attendee to the claimedRSVPs list
+    myEvent.claimedRSVPs.push(attendee);
+
+    // sending eth back to the staker `https://solidity-by-example.org/sending-ether`
+    (bool sent,) = attendee.call{value: myEvent.deposit}("");
+
+    // if this fails, remove the user from the array of claimed RSVPs
+    if (!sent) {
+        myEvent.claimedRSVPs.pop();
+    }
+
+    require(sent, "Failed to send Ether");
+  }
+
+  function confirmAllAttendees(bytes32 eventId) external {
+    // look up event from struct using the eventId
+    CreateEvent memory myEvent = idToEvent[eventId];
+
+    // confirm that msg.sender is the owner of the event
+    require(msg.sender == myEvent.eventOwner, "NOT AUTHORIZED");
+
+    // confirm each attendee in the rsvp array
+    for (uint8 i = 0; i < myEvent.confirmedRSVPs.length; i++) {
+        confirmAttendee(eventId, myEvent.confirmedRSVPs[i]);
+    }
   }
 
 }
