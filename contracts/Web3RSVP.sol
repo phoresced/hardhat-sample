@@ -3,6 +3,21 @@ pragma solidity ^0.8.4;
 
 contract Web3RSVP {
 
+  event NewEventCreated(
+    bytes32 eventID,
+    address creatorAddress,
+    uint256 eventTimestamp,
+    uint256 maxCapacity,
+    uint256 deposit,
+    string eventDataCID
+  );
+
+  event NewRSVP(bytes32 eventID, address attendeeAddress);
+
+  event ConfirmedAttendee(bytes32 eventID, address attendeeAddress);
+
+  event DepositsPaidOut(bytes32 eventID);
+
   struct CreateEvent {
       bytes32 eventId;
       string eventDataCID;
